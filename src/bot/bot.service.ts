@@ -41,6 +41,7 @@ export class BotService {
 
       await this.prisma.stadion.create({
         data: {
+          name: ctx.session.stadion.name!,
           phone,
           image,
           price: Number(price),
@@ -59,6 +60,7 @@ export class BotService {
         Markup.keyboard([['Ortga']]).resize(),
       );
       ctx.session.stadion = {
+        name: null,
         phone: null,
         location: null,
         region: null,
@@ -104,6 +106,7 @@ export class BotService {
       }
       await this.prisma.stadion.create({
         data: {
+          name: name,
           description,
           price,
           region,

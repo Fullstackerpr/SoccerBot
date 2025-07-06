@@ -41,6 +41,7 @@ export interface IssesionData {
   menigerid: string | null;
 
   stadion: {
+    name: string | null
     phone: string | null;
     location: string | null;
     region: string | null;

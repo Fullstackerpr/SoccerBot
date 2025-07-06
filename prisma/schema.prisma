@@ -15,6 +15,7 @@ datasource db {
 
 model Stadion {
   id               Int                @id() @default(autoincrement())
+  name             String             @default("Nomaʼlum")
   phone            String
   region           String
   description      String

@@ -9,12 +9,11 @@ import {
   Wizard,
   Command,
   Next,
-} from 'nestjs-telegraf';
-import { Context, Markup, Scenes } from 'telegraf';
-import { BotService } from './bot.service';
-import { MyContex, MyContext, StadiumDataState } from 'src/helpers/sesion';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { WizardScene } from 'telegraf/typings/scenes';
+} from "nestjs-telegraf";
+import { Context, Markup, Scenes } from "telegraf";
+import { BotService } from "./bot.service";
+import { MyContex, MyContext, StadiumDataState } from "src/helpers/sesion";
+import { PrismaService } from "src/prisma/prisma.service";
 
 interface MyScenes extends Scenes.WizardContext {
   ABS: string | null;
@@ -27,20 +26,20 @@ export class BotUpdate {
   private readonly ADMIN_ID = process.env.ADMIN_ID;
   constructor(
     private readonly botService: BotService,
-    private readonly prisma: PrismaService,
+    private readonly prisma: PrismaService
   ) {}
 
-  @On('callback_query')
+  @On("callback_query")
   async handleAllCallbacks(
     @Ctx() ctx: Scenes.WizardContext,
-    @Next() next: () => void,
+    @Next() next: () => void
   ) {
     const data = (ctx.callbackQuery as any)?.data;
-    const breakingActions = ['main-menu', 'cancel', 'ortga'];
+    const breakingActions = ["main-menu", "cancel", "ortga"];
 
     if (ctx.scene?.current && breakingActions.includes(data)) {
       await ctx.scene.leave();
-      await ctx.reply('❌ Jarayon bekor qilindi.');
+      await ctx.reply("❌ Jarayon bekor qilindi.");
       return;
     }
 
@@ -51,7 +50,7 @@ export class BotUpdate {
   async onStart(@Ctx() ctx: MyContex) {
     if (ctx.from?.id === Number(this.ADMIN_ID)) {
       await ctx.reply(
-        'Xush kelibsiz, Admin!\nStadionlarni boshqarish uchun quyidagi tugmalardan foydalaning.',
+        "Xush kelibsiz, Admin!\nStadionlarni boshqarish uchun quyidagi tugmalardan foydalaning.",
         {
           reply_markup: {
             keyboard: [
@@ -60,7 +59,7 @@ export class BotUpdate {
             ],
             resize_keyboard: true,
           },
-        },
+        }
       );
 
       /////////////////////////////////////////////////////////////////////////////
@@ -70,32 +69,32 @@ export class BotUpdate {
       });
       if (!data) {
         ctx.reply(
-          `Assalomu alaykum botga xush kelibsiz hurmatliy ${ctx.from?.first_name || 'Foydalanuvchi'}`,
+          `Assalomu alaykum botga xush kelibsiz hurmatliy ${ctx.from?.first_name || "Foydalanuvchi"}`,
           Markup.keyboard([
-            [`Stadion band qilish`, `Band qilgan stadionlaringiz`],
-          ]).resize(),
+            [`⌚ Stadion band qilish`, `📑 Band qilgan stadionlarim`],
+          ]).resize()
         );
         return;
       }
       ctx.reply(
-        `Asslaomu alaykum botga xush kelibsiz hurmatli ${ctx.from?.first_name || 'Menijer'}`,
+        `Asslaomu alaykum botga xush kelibsiz hurmatli ${ctx.from?.first_name || "Menijer"}`,
         Markup.keyboard([
           [`Zakazlarni ko'rish`, `Stadion malumotlari`],
           [`Ish vaqtlarini yaratish`],
-        ]).resize(),
+        ]).resize()
       );
     }
   }
 
-  @Command('/start')
+  @Command("/start")
   onStarts(@Ctx() ctx: MyContex) {
     return this.onStart(ctx);
   }
 
-  @Hears('♻️ Stadionni yangilash')
+  @Hears("♻️ Stadionni yangilash")
   async updateStadium(@Ctx() ctx: MyContext) {
     // 🔁 Barcha state'larni tozalab chiqamiz
-    ctx.session.state = 'waitingForUpdateId';
+    ctx.session.state = "waitingForUpdateId";
     ctx.session.waitingForDeleteId = false;
     ctx.session.waitingForUpdateId = false;
     ctx.session.waitingForNewPrice = false;
@@ -103,26 +102,26 @@ export class BotUpdate {
 
     const stadiums = await this.prisma.stadion.findMany();
     if (!stadiums.length) {
-      await ctx.reply('Hozircha hech qanday stadion mavjud emas.');
+      await ctx.reply("Hozircha hech qanday stadion mavjud emas.");
       return;
     }
 
     for (const stadium of stadiums) {
       await ctx.reply(
-        `🆔 ID: ${stadium.id}\n🏟 Region: ${stadium.region}\n💰 Narx: ${stadium.price?.toLocaleString()} so'm`,
+        `🆔 ID: ${stadium.id}\n🏟 Region: ${stadium.region}\n💰 Narx: ${stadium.price?.toLocaleString()} so'm`
       );
     }
 
     await ctx.reply(
-      `✏️ Yangilamoqchi bo'lgan stadionning ID raqamini yuboring.`,
+      `✏️ Yangilamoqchi bo'lgan stadionning ID raqamini yuboring.`
     );
     // 🔑 Bu yerda state orqali ishlash yaxshiroq
-    ctx.session.state = 'waitingForUpdateId';
+    ctx.session.state = "waitingForUpdateId";
   }
 
   ////////////////////////////////////////////////////////////////////////////////////
 
-  @Hears('Stadion band qilish')
+  @Hears("⌚ Stadion band qilish")
   async onBooking(@Ctx() ctx: MyContex) {
     ctx.session = ctx.session ?? {};
     ctx.session.user = ctx.session.user ?? {
@@ -132,27 +131,26 @@ export class BotUpdate {
       bookingSelectedRegion: null,
     };
 
-    //.session.user_phone = 'phone';
-
     const regions = await this.prisma.stadion.findMany({
-      distinct: ['region', 'id'],
+      distinct: ["region", "id"],
       select: { region: true },
     });
 
     if (!regions.length) {
-      return ctx.reply('🤷‍♂️ Hozirda hech qanday hudud mavjud emas.');
+      await ctx.reply("🤷‍♂️ Hozirda hech qanday hudud mavjud emas.");
+      return;
     }
 
     const buttons = regions.map((r) => [
       Markup.button.callback(
         r.region,
-        `region_${encodeURIComponent(r.region)}`,
+        `region_${encodeURIComponent(r.region)}`
       ),
     ]);
 
     await ctx.reply(
-      '📍 Qaysi hududdagi stadionni band qilmoqchisiz?',
-      Markup.inlineKeyboard(buttons),
+      "📍 Qaysi hududdagi stadionni band qilmoqchisiz?",
+      Markup.inlineKeyboard(buttons)
     );
     return;
   }
@@ -161,7 +159,7 @@ export class BotUpdate {
   async onRegionSelected(@Ctx() ctx: MyContex) {
     await ctx.answerCbQuery();
 
-    const region = decodeURIComponent(ctx.match?.[1] ?? '');
+    const region = decodeURIComponent(ctx.match?.[1] ?? "");
 
     ctx.session.user = ctx.session.user ?? {};
     ctx.session.user.bookingSelectedRegion = region;
@@ -185,7 +183,7 @@ export class BotUpdate {
 
     if (!stadiums.length) {
       return ctx.reply(
-        `❌ ${region} hududida hozircha stadionlar mavjud emas.`,
+        `❌ ${region} hududida hozircha stadionlar mavjud emas.`
       );
     }
 
@@ -194,7 +192,7 @@ export class BotUpdate {
         continue;
       }
 
-      await ctx.reply('⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️');
+      await ctx.reply("⬇️⬇️⬇️⬇️⬇️⬇️⬇️⬇️");
 
       await ctx.replyWithLocation(stadium.longitude, stadium.latitude);
       await new Promise((res) => setTimeout(res, 300));
@@ -214,90 +212,123 @@ export class BotUpdate {
 
       if (stadium.image) {
         try {
-          if (stadium.image.startsWith('http')) {
+          if (stadium.image.startsWith("http")) {
             await ctx.replyWithPhoto(
               { url: stadium.image },
               {
                 caption,
-                parse_mode: 'HTML',
-              },
+                parse_mode: "HTML",
+              }
             );
           } else {
             await ctx.replyWithPhoto(stadium.image, {
               caption,
-              parse_mode: 'HTML',
+              parse_mode: "HTML",
             });
           }
         } catch (err) {
-          await ctx.reply(caption, { parse_mode: 'HTML' });
+          await ctx.reply(caption, { parse_mode: "HTML" });
         }
       } else {
-        await ctx.reply(caption, { parse_mode: 'HTML' });
+        await ctx.reply(caption, { parse_mode: "HTML" });
       }
     }
     await ctx.reply(
       `✅ Band qilmoqchi bo‘lgan stadion ID sini yuboring:`,
-      Markup.keyboard([['Ortga']]).resize(),
+      Markup.keyboard([["Ortga"]]).resize()
     );
-    ctx.session.region = 'region';
-    ctx.session.booking_id = 'booking';
+    ctx.session.region = "region";
+    ctx.session.booking_id = "booking";
   }
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
-  //   @Hears('Band qilgan stadionlaringiz')
-  //   async onUserBookings(@Ctx() ctx: MyContex) {
-  //     const telegramId = ctx.from?.id;
-  //     if (!telegramId) return ctx.reply('❌ Telegram ID topilmadi.');
+  @Hears("📑 Band qilgan stadionlarim")
+  async myBookings(@Ctx() ctx: Scenes.WizardContext) {
+    await ctx.scene.leave();
 
-  //     const user = await this.prisma.user.findUnique({
-  //       where: { telegram },
-  //     });
+    const telegramId = ctx.from?.id;
+    if (!telegramId) return ctx.reply("❌ Telegram ID aniqlanmadi.");
 
-  //     if (!user) {
-  //       return ctx.reply('❌ Foydalanuvchi topilmadi.');
-  //     }
+    const user = await this.prisma.user.findFirst({
+      where: { telegramId },
+    });
 
-  //     const bookings = await this.prisma.booking.findMany({
-  //       where: { user_id: user.id },
-  //       include: { stadion: true },
-  //       orderBy: { book_date: 'desc' },
-  //     });
+    if (!user) {
+      await ctx.reply("Siz hali biror stadion band qilmagansiz.");
+      return;
+    }
 
-  //     if (!bookings.length) {
-  //       return ctx.reply('📭 Siz hali hech qanday stadion band qilmagansiz.');
-  //     }
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        userId: user.id,
+      },
+      orderBy: {
+        book_date: "desc",
+      },
+    });
 
-  //     for (const booking of bookings) {
-  //       const { stadion, book_date, time_start, time_end } = booking;
+    if (bookings.length === 0) {
+      await ctx.reply("Siz hali biror stadion band qilmagansiz.");
+      return;
+    }
 
-  //       const caption = `
+    for (const booking of bookings) {
+      const stadion = await this.prisma.stadion.findFirst({
+        where: { id: booking.stadionId },
+      });
 
-  // 🏟 <b>${stadion.region}</b> - ${stadion.description}
+      const text = `
+📍 Stadion: ${stadion?.name ?? "Nomaʼlum"}
+📅 Sana: ${booking.dey}
+🕓 Vaqt: ${booking.time}
+📌 Hudud: ${stadion?.region ?? "Nomaʼlum"}
+📍 Manzil: ${stadion?.longitude ?? "Nomaʼlum"}
+💰 Narxi: ${stadion?.price ?? "Nomaʼlum"} so'm
+    `.trim();
 
-  // 📅 <b>Sana:</b> ${book_date}
+      await ctx.reply(text);
+    }
+  }
 
-  // 🕒 <b>Vaqt:</b> ${time_start} - ${time_end}
+  @Hears(/^\d{2}:\d{2}-\d{2}:\d{2}$/)
+  async onTimeRange(@Ctx() ctx: MyContext) {
+    if (ctx.message && "text" in ctx.message) {
+      const timeRange = ctx.message.text;
+      await ctx.reply(`✅ Qabul qilindi: ${timeRange}`, {
+        reply_markup: {
+          keyboard: [[{ text: "⬅️ Ortga" }]],
+          resize_keyboard: true,
+        },
+      });
+    } else {
+      await ctx.reply(
+        "❌ Iltimos, vaqt oralig‘ini matn ko‘rinishida kiriting."
+      );
+    }
+  }
 
-  // 📞 <b>Telefon:</b> ${stadion.phone}
+  @Action("confirm_booking")
+  async handleConfirm(@Ctx() ctx: Scenes.WizardContext) {
+    await ctx.reply(
+      "Iltimos, vaqt oralig'ini kiriting (masalan: 16:00-18:00)",
+      {
+        reply_markup: {
+          keyboard: [[{ text: "⬅️ Ortga" }]],
+          resize_keyboard: true,
+          one_time_keyboard: true,
+        },
+      }
+    );
 
-  // 💰 <b>Narx:</b> ${stadion.price.toLocaleString()} so'm
-
-  // 🆔 <b>Stadion ID:</b> ${stadion.id}
-  //     `.trim();
-
-  //       await ctx.replyWithPhoto(stadion.img, {
-  //         caption,
-  //         parse_mode: 'HTML',
-  //       });
-  //     }
-  //   }
+    ctx.wizard.selectStep(1); // 👉 keyingi stepga o'tamiz
+  }
 
   ///////////////////////////////////////////////////////////////////////////
-  
+
   @Hears(`🗑 Stadionni o'chirish`)
   async deleteStadium(@Ctx() ctx: MyContex) {
-    ctx.session.state = 'waitingForDeleteId'; // 👈 BU MUHIM!
+    ctx.session.state = "waitingForDeleteId"; // 👈 BU MUHIM!
     ctx.session.page = 0; // boshlang‘ich sahifa
     await this.botService.showPage(ctx);
     await ctx.reply("⛔ O'chirmoqchi bo'lgan stadion ID raqamini kiriting:");
@@ -312,7 +343,7 @@ export class BotUpdate {
     });
 
     if (!stadionlar.length)
-      return ctx.reply('Sizga biriktirilgan stadionlar topilmadi.');
+      return ctx.reply("Sizga biriktirilgan stadionlar topilmadi.");
 
     let bookingFound = false;
     for (const stadion of stadionlar) {
@@ -320,7 +351,7 @@ export class BotUpdate {
 
       bookingFound = true;
       await ctx.reply(`📍 <b>${stadion.region}</b> hududidagi zakazlar:`, {
-        parse_mode: 'HTML',
+        parse_mode: "HTML",
       });
 
       for (const booking of stadion.Booking) {
@@ -329,13 +360,13 @@ export class BotUpdate {
 ⏰ <b>Soat:</b> ${booking.time}
 👤 <b>Ism:</b> ${booking.user.name}
 📞 <b>Telefon:</b> ${booking.user.phone}`;
-        await ctx.reply(msg, { parse_mode: 'HTML' });
+        await ctx.reply(msg, { parse_mode: "HTML" });
       }
     }
-    if (!bookingFound) ctx.reply('Sizga tegishli stadionlarda zakazlar yo‘q.');
+    if (!bookingFound) ctx.reply("Sizga tegishli stadionlarda zakazlar yo‘q.");
   }
 
-  @Hears('Stadion malumotlari')
+  @Hears("Stadion malumotlari")
   onStadionMalumot(@Ctx() ctx: MyContex) {
     return this.botService.findStadionMalumotlari(ctx);
   }
@@ -343,12 +374,12 @@ export class BotUpdate {
   @Action(/^edit_Ubdate_(\d+)$/)
   async onEditStadion(@Ctx() ctx: MyContex) {
     const stadionId = ctx.match?.[1];
-    if (!stadionId) return ctx.reply('ID aniqlanmadi.');
+    if (!stadionId) return ctx.reply("ID aniqlanmadi.");
 
     const stadion = await this.prisma.stadion.findUnique({
       where: { id: Number(stadionId) },
     });
-    if (!stadion) return ctx.reply('Stadion topilmadi.');
+    if (!stadion) return ctx.reply("Stadion topilmadi.");
 
     ctx.session.update = {
       id: stadion.id,
@@ -359,16 +390,16 @@ export class BotUpdate {
       latitude: stadion.latitude,
       price: stadion.price,
       image: stadion.image,
-      step: 'region',
+      step: "region",
     };
 
     await ctx.reply(
-      '✏️ Yangi region nomini kiriting:',
-      Markup.keyboard([['Ortga']]).resize(),
+      "✏️ Yangi region nomini kiriting:",
+      Markup.keyboard([["Ortga"]]).resize()
     );
   }
 
-  @Hears('Ish vaqtlarini yaratish')
+  @Hears("Ish vaqtlarini yaratish")
   async stadionIshvaqtlari(@Ctx() ctx: MyContex) {
     const menegerId = String(ctx.from?.id);
     const stadion = await this.prisma.stadion.findFirst({
@@ -377,7 +408,7 @@ export class BotUpdate {
     });
 
     if (!stadion) {
-      return ctx.reply('❗ Sizga biriktirilgan stadion topilmadi.');
+      return ctx.reply("❗ Sizga biriktirilgan stadion topilmadi.");
     }
 
     // Sessionga stadion ID ni saqlash
@@ -392,41 +423,41 @@ export class BotUpdate {
         text += `#${index + 1}) 🕒 <b>${schedule.start_time}</b> - <b>${schedule.end_time}</b>\n`;
       });
 
-      await ctx.reply(text, { parse_mode: 'HTML' });
+      await ctx.reply(text, { parse_mode: "HTML" });
     } else {
-      await ctx.reply('⚠️ Stadion uchun ish vaqtlari belgilanmagan.');
+      await ctx.reply("⚠️ Stadion uchun ish vaqtlari belgilanmagan.");
     }
     await ctx.reply(
-      '⬇️ Davom ettirish uchun amal tanlang:',
-      Markup.keyboard([['🆕 Yaratish', '✏️ Tahrirlash'], ['Ortga']]).resize(),
+      "⬇️ Davom ettirish uchun amal tanlang:",
+      Markup.keyboard([["🆕 Yaratish", "✏️ Tahrirlash"], ["Ortga"]]).resize()
     );
-    ctx.session.location = 'ABS';
+    ctx.session.location = "ABS";
   }
 
-  @Hears('🆕 Yaratish')
+  @Hears("🆕 Yaratish")
   async onCreateSchedule(@Ctx() ctx: MyContex) {
-    ctx.session.state = 'start_time';
+    ctx.session.state = "start_time";
     await ctx.reply(
-      '⏰ Ochilish vaqtini kiriting (masalan: 08:00):',
-      Markup.keyboard([['Ortga']]).resize(),
+      "⏰ Ochilish vaqtini kiriting (masalan: 08:00):",
+      Markup.keyboard([["Ortga"]]).resize()
     );
   }
 
   @Hears("➕ Stadion qo'shish")
   async addStadium(@Ctx() ctx: MyScenes) {
-    ctx.scene.enter('add-stadium-wizard');
+    ctx.scene.enter("add-stadium-wizard");
   }
 
-  @Hears('Ortga')
+  @Hears("Ortga")
   async OnOrtga(@Ctx() ctx: MyContex) {
     if (ctx.session.update) {
       ctx.session.update = null;
       return ctx.reply(
         "Tahrirlash bekor qilindi. Siz asosiy menyuga o'tdingiz.",
         Markup.keyboard([
-          ["Zakazlarni ko'rish", 'Stadion malumotlari'],
-          ['Ish vaqtlarini yaratish'],
-        ]).resize(),
+          ["Zakazlarni ko'rish", "Stadion malumotlari"],
+          ["Ish vaqtlarini yaratish"],
+        ]).resize()
       );
     }
     if (ctx.from?.id == Number(this.ADMIN_ID)) {
@@ -435,28 +466,34 @@ export class BotUpdate {
         Markup.keyboard([
           [`➕ Stadion qo'shish`],
           [`🗑 Stadionni o'chirish`, `♻️ Stadionni yangilash`],
-        ]).resize(),
+        ]).resize()
       );
       return;
     }
-    if (ctx.session.region == 'region') {
+    if (ctx.session.region == "region") {
       ctx.reply(
         "Siz asosiy menyuga o'ttingiz",
         Markup.keyboard([
           [`Stadion band qilish`, `Band qilgan stadionlaringiz`],
-        ]).resize(),
+        ]).resize()
       );
       ctx.session.region = null;
     }
-    if (ctx.session.location == 'ABS') {
+    if (ctx.session.location == "ABS") {
       await ctx.reply(
         `Asosiy menyu`,
         Markup.keyboard([
-          ["Zakazlarni ko'rish", 'Stadion malumotlari'],
-          ['Ish vaqtlarini yaratish'],
-        ]).resize(),
+          ["Zakazlarni ko'rish", "Stadion malumotlari"],
+          ["Ish vaqtlarini yaratish"],
+        ]).resize()
       );
     }
+    await ctx.reply("🏠 Bosh sahifaga xush kelibsiz!", {
+      reply_markup: {
+        keyboard: [["📅 Stadion band qilish", "📑 Band qilgan stadionlarim"]],
+        resize_keyboard: true,
+      },
+    });
   }
 
   @Hears("Stadionlarni ko'rish")
@@ -464,25 +501,25 @@ export class BotUpdate {
     return this.botService.showPage(ctx);
   }
 
-  @Action('next')
+  @Action("next")
   async nextPage(@Ctx() ctx: MyContex) {
     await ctx.answerCbQuery();
     ctx.session.page = (ctx.session.page ?? 0) + 1;
     await this.botService.showPage(ctx);
   }
 
-  @Action('prev')
+  @Action("prev")
   async prevPage(@Ctx() ctx: MyContex) {
     await ctx.answerCbQuery();
     ctx.session.page = Math.max((ctx.session.page ?? 0) - 1, 0);
     await this.botService.showPage(ctx);
   }
 
-  @Command('/help')
+  @Command("help")
   async onHelp(@Ctx() ctx: MyContex) {
     const firstName = ctx.from?.first_name
       ? `@${ctx.from.first_name}`
-      : ctx.from?.first_name || 'Foydalanuvchi';
+      : ctx.from?.first_name || "Foydalanuvchi";
     await ctx.reply(`
       📋 Yordam bo‘limi
 
@@ -505,11 +542,11 @@ Agar sizda savollar bo‘lsa, admin bilan bog‘laning: @BahodirNabijanov
     `);
   }
 
-  @Command('/info')
+  @Command("info")
   async onInfo(@Ctx() ctx: MyContex) {
     const firstName = ctx.from?.first_name
       ? `@${ctx.from.first_name}`
-      : ctx.from?.first_name || 'Foydalanuvchi';
+      : ctx.from?.first_name || "Foydalanuvchi";
 
     await ctx.reply(
       `
@@ -531,12 +568,12 @@ Yordam kerakmi? /help ni bosing
 Admin: @BahodirNabijanov
 `,
       {
-        parse_mode: 'Markdown',
-      },
+        parse_mode: "Markdown",
+      }
     );
   }
 
-  @Action('book')
+  @Action("book")
   async onYes(@Ctx() ctx: MyContex) {
     await ctx.answerCbQuery();
     ctx.session = ctx.session ?? {};
@@ -554,35 +591,35 @@ Admin: @BahodirNabijanov
 
     if (!manager || !manager.stadion) {
       await ctx.reply(
-        '❗ Sizga stadion biriktirilmagan bo‘lsa ham, vaqt kiritishingiz mumkin.',
+        "❗ Sizga stadion biriktirilmagan bo‘lsa ham, vaqt kiritishingiz mumkin."
       );
     } else {
       stadionId = manager.stadion.id;
     }
 
     await ctx.reply(
-      '🕒 Iltimos, ish vaqt oralig‘ini quyidagi formatda kiriting:\n\n`08:00 - 10:00`',
+      "🕒 Iltimos, ish vaqt oralig‘ini quyidagi formatda kiriting:\n\n`08:00-10:00`",
       {
-        parse_mode: 'Markdown',
-      },
+        parse_mode: "Markdown",
+      }
     );
 
-    ctx.session.step = 'ENTER_TIME_RANGE';
+    ctx.session.step = "ENTER_TIME_RANGE";
     ctx.session.stadionSchedule = {
       stadionId: stadionId ?? 0,
-      step: 'ENTER_TIME_RANGE',
+      step: "ENTER_TIME_RANGE",
     };
   }
 
-  @Action('cancel_booking')
+  @Action("cancel_booking")
   async onNo(@Ctx() ctx: MyContex) {
     await ctx.answerCbQuery();
-    await ctx.reply('❌ Buyurtma bekor qilindi.');
-    return
+    await ctx.reply("❌ Buyurtma bekor qilindi.");
+    return;
   }
 
   ///////////////////////////////////////////////
-  @On('text')
+  @On("text")
   async onStepHandler(@Ctx() ctx: MyContex) {
     ctx.session = ctx.session ?? {};
     ctx.session.stadion = ctx.session.stadion ?? {};
@@ -590,14 +627,14 @@ Admin: @BahodirNabijanov
     if (!ctx.session) return;
 
     if (
-      ctx.session.step === 'ENTER_TIME_RANGE' &&
+      ctx.session.step === "ENTER_TIME_RANGE" &&
       ctx.message &&
-      'text' in ctx.message
+      "text" in ctx.message
     ) {
       const timeRange = ctx.message.text;
       if (!/^\d{2}:\d{2}-\d{2}:\d{2}$/.test(timeRange)) {
         await ctx.reply(
-          '❗ Noto‘g‘ri format. Iltimos, `08:00-10:00` ko‘rinishida kiriting.',
+          "❗ Noto‘g‘ri format. Iltimos, `08:00-10:00` ko‘rinishida kiriting."
         );
         return;
       }
@@ -609,8 +646,8 @@ Admin: @BahodirNabijanov
 
     if (
       ctx.message &&
-      'text' in ctx.message &&
-      ctx.session.booking_id == 'booking'
+      "text" in ctx.message &&
+      ctx.session.booking_id == "booking"
     ) {
       const id = Number(ctx.message.text);
       if (isNaN(id)) return;
@@ -621,7 +658,7 @@ Admin: @BahodirNabijanov
       });
 
       if (!stadion) {
-        await ctx.reply('❌ Bunday IDga ega stadion topilmadi.');
+        await ctx.reply("❌ Bunday IDga ega stadion topilmadi.");
         return;
       }
 
@@ -637,15 +674,15 @@ Admin: @BahodirNabijanov
 
       await ctx.replyWithPhoto(stadion.image, {
         caption,
-        parse_mode: 'HTML',
+        parse_mode: "HTML",
       });
 
       await ctx.reply(
-        '🗓 Stadionni band qilishni istaysizmi?',
+        "🗓 Stadionni band qilishni istaysizmi?",
         Markup.inlineKeyboard([
-          Markup.button.callback('✅ Ha', `book`),
-          Markup.button.callback(`❌ Yo'q`, 'cancel_booking'),
-        ]),
+          Markup.button.callback("✅ Ha", `book`),
+          Markup.button.callback(`❌ Yo'q`, "cancel_booking"),
+        ])
       );
 
       ctx.session.booking_id = null;
@@ -653,47 +690,47 @@ Admin: @BahodirNabijanov
       return;
     }
 
-    if (ctx.message && 'text' in ctx.message) {
+    if (ctx.message && "text" in ctx.message) {
       const text = ctx.message.text;
 
       // START TIME
-      if (ctx.session.state === 'start_time') {
+      if (ctx.session.state === "start_time") {
         ctx.session.createStartTime = text;
-        ctx.session.state = 'end_time';
+        ctx.session.state = "end_time";
 
         await ctx.reply(
-          '⏰ Yopilish vaqtini kiriting (masalan: 22:00):',
-          Markup.keyboard([['Ortga']]).resize(),
+          "⏰ Yopilish vaqtini kiriting (masalan: 22:00):",
+          Markup.keyboard([["Ortga"]]).resize()
         );
         return;
       }
 
       // END TIME
-      if (ctx.session.state === 'end_time') {
+      if (ctx.session.state === "end_time") {
         ctx.session.createEndTime = text;
-        ctx.session.state = '';
+        ctx.session.state = "";
 
         const start = ctx.session.createStartTime;
         const end = ctx.session.createEndTime;
         const stadionId = ctx.session.stadionSchedule?.stadionId;
 
         if (!start || !end || !stadionId) {
-          ctx.reply('❗ Maʼlumotlar toʻliq emas.');
+          ctx.reply("❗ Maʼlumotlar toʻliq emas.");
           return;
         }
 
-        const startHour = parseInt(start.split(':')[0]);
-        const endHour = parseInt(end.split(':')[0]);
+        const startHour = parseInt(start.split(":")[0]);
+        const endHour = parseInt(end.split(":")[0]);
 
         if (isNaN(startHour) || isNaN(endHour) || startHour >= endHour) {
-          ctx.reply('❗ Noto‘g‘ri vaqt oralig‘i. Qayta urinib ko‘ring.');
+          ctx.reply("❗ Noto‘g‘ri vaqt oralig‘i. Qayta urinib ko‘ring.");
           return;
         }
 
         const bookedTimes = await this.prisma.booking.findMany({
           where: {
             stadionId: stadionId,
-            dey: new Date().toISOString().split('T')[0],
+            dey: new Date().toISOString().split("T")[0],
           },
           select: { time: true },
         });
@@ -702,94 +739,94 @@ Admin: @BahodirNabijanov
 
         let count = 0;
         for (let hour = startHour; hour < endHour; hour++) {
-          const slot = `${hour.toString().padStart(2, '0')}:00`;
+          const slot = `${hour.toString().padStart(2, "0")}:00`;
           if (reserved.includes(slot)) continue;
 
           await this.prisma.stadion_schedule.create({
             data: {
               stadion_id: stadionId,
               start_time: slot,
-              end_time: `${(hour + 1).toString().padStart(2, '0')}:00`,
+              end_time: `${(hour + 1).toString().padStart(2, "0")}:00`,
             },
           });
           count++;
         }
 
-        ctx.session.createStartTime = '';
-        ctx.session.createEndTime = '';
+        ctx.session.createStartTime = "";
+        ctx.session.createEndTime = "";
 
         await ctx.reply(
           `✅ ${count} ta ish vaqt saqlandi!`,
           Markup.keyboard([
-            ["Zakazlarni ko'rish", 'Stadion malumotlari'],
-            ['Ish vaqtlarini yaratish'],
-          ]).resize(),
+            ["Zakazlarni ko'rish", "Stadion malumotlari"],
+            ["Ish vaqtlarini yaratish"],
+          ]).resize()
         );
         return;
       }
     }
     if (
-      ctx.session.update?.step === 'region' &&
+      ctx.session.update?.step === "region" &&
       ctx.message &&
-      'text' in ctx.message
+      "text" in ctx.message
     ) {
       ctx.session.update.region = ctx.message.text;
-      ctx.session.update.step = 'phone';
+      ctx.session.update.step = "phone";
       ctx.reply(
-        '📞 Yangi telefon raqamini kiriting:',
-        Markup.keyboard([['Ortga']]).resize(),
+        "📞 Yangi telefon raqamini kiriting:",
+        Markup.keyboard([["Ortga"]]).resize()
       );
       return;
     }
 
     if (
-      ctx.session.update?.step === 'phone' &&
+      ctx.session.update?.step === "phone" &&
       ctx.message &&
-      'text' in ctx.message
+      "text" in ctx.message
     ) {
       ctx.session.update.phone = ctx.message.text;
-      ctx.session.update.step = 'description';
+      ctx.session.update.step = "description";
       ctx.reply(
-        '📝 Yangi tavsifni kiriting:',
-        Markup.keyboard([['Ortga']]).resize(),
+        "📝 Yangi tavsifni kiriting:",
+        Markup.keyboard([["Ortga"]]).resize()
       );
       return;
     }
 
     if (
-      ctx.session.update?.step === 'description' &&
+      ctx.session.update?.step === "description" &&
       ctx.message &&
-      'text' in ctx.message
+      "text" in ctx.message
     ) {
       ctx.session.update.description = ctx.message.text;
-      ctx.session.update.step = 'price';
+      ctx.session.update.step = "price";
       ctx.reply(
-        '💰 Yangi narxni kiriting:',
-        Markup.keyboard([['Ortga']]).resize(),
+        "💰 Yangi narxni kiriting:",
+        Markup.keyboard([["Ortga"]]).resize()
       );
       return;
     }
 
     if (
-      ctx.session.update?.step === 'price' &&
+      ctx.session.update?.step === "price" &&
       ctx.message &&
-      'text' in ctx.message
+      "text" in ctx.message
     ) {
       const price = parseInt(ctx.message.text);
-      if (isNaN(price)) return ctx.reply('❗ Narx raqamda bo‘lishi kerak.');
+      if (isNaN(price)) return ctx.reply("❗ Narx raqamda bo‘lishi kerak.");
       ctx.session.update.price = price;
-      ctx.session.update.step = 'image';
+      ctx.session.update.step = "image";
       ctx.reply(
-        '🖼 Yangi rasmni yuboring:',
-        Markup.keyboard([['Ortga']]).resize(),
+        "🖼 Yangi rasmni yuboring:",
+        Markup.keyboard([["Ortga"]]).resize()
       );
       return;
     }
 
     if (
-      ctx.session.update?.step === 'image' &&
+      ctx.session.update?.step === "image" &&
       ctx.message &&
-      'photo' in ctx.message
+      "photo" in ctx.message
     ) {
       const photo = ctx.message.photo[ctx.message.photo.length - 1];
       ctx.session.update.image = photo.file_id;
@@ -820,96 +857,96 @@ Admin: @BahodirNabijanov
       ctx.session.update = null;
       ctx.reply(
         "✅ Stadion ma'lumotlari muvaffaqiyatli yangilandi!",
-        Markup.keyboard([[`Stadion malumotlari`]]).resize(),
+        Markup.keyboard([[`Stadion malumotlari`]]).resize()
       );
       return;
     }
 
     if (
-      ctx.session.region === 'region' &&
+      ctx.session.region === "region" &&
       ctx.message &&
-      'text' in ctx.message
+      "text" in ctx.message
     ) {
       ctx.session.stadion.region = ctx.message.text;
       ctx.session.region = null;
-      ctx.session.phone = 'phone';
+      ctx.session.phone = "phone";
       ctx.reply(
-        '📞 Telefon raqamini (998930451852) shaklida kiriting:',
-        Markup.keyboard([['Ortga']]).resize(),
+        "📞 Telefon raqamini (998930451852) shaklida kiriting:",
+        Markup.keyboard([["Ortga"]]).resize()
       );
       return;
     }
 
-    if (ctx.session.phone === 'phone' && ctx.message && 'text' in ctx.message) {
+    if (ctx.session.phone === "phone" && ctx.message && "text" in ctx.message) {
       ctx.session.stadion.phone = ctx.message.text;
       ctx.session.phone = null;
-      ctx.session.description = 'description';
-      ctx.reply('📝 Tavsif kiriting:', Markup.keyboard([['Ortga']]).resize());
+      ctx.session.description = "description";
+      ctx.reply("📝 Tavsif kiriting:", Markup.keyboard([["Ortga"]]).resize());
       return;
     }
 
     if (
-      ctx.session.description === 'description' &&
+      ctx.session.description === "description" &&
       ctx.message &&
-      'text' in ctx.message
+      "text" in ctx.message
     ) {
       ctx.session.stadion.description = ctx.message.text;
       ctx.session.description = null;
-      ctx.session.location = 'location';
+      ctx.session.location = "location";
       ctx.reply(
-        '📍 Joylashuvingizni yuboring:',
-        Markup.keyboard([['Ortga']]).resize(),
+        "📍 Joylashuvingizni yuboring:",
+        Markup.keyboard([["Ortga"]]).resize()
       );
       return;
     }
 
     if (
-      ctx.session.location === 'location' &&
+      ctx.session.location === "location" &&
       ctx.message &&
-      'location' in ctx.message
+      "location" in ctx.message
     ) {
       const { latitude, longitude } = ctx.message.location;
       ctx.session.stadion.location = `${latitude},${longitude}`;
       ctx.session.location = null;
-      ctx.session.price = 'price';
+      ctx.session.price = "price";
       ctx.reply(
-        '💰 Narxni kiriting (raqamda):',
-        Markup.keyboard([['Ortga']]).resize(),
+        "💰 Narxni kiriting (raqamda):",
+        Markup.keyboard([["Ortga"]]).resize()
       );
       return;
     }
 
-    if (ctx.session.price === 'price' && ctx.message && 'text' in ctx.message) {
+    if (ctx.session.price === "price" && ctx.message && "text" in ctx.message) {
       const price = parseInt(ctx.message.text);
       if (isNaN(price)) ctx.reply("❗ Raqam bo'lishi kerak. Qayta kiriting:");
 
       ctx.session.stadion.price = price;
       ctx.session.price = null;
-      ctx.session.image = 'image';
-      ctx.reply('🖼 Rasm yuboring:', Markup.keyboard([['Ortga']]).resize());
+      ctx.session.image = "image";
+      ctx.reply("🖼 Rasm yuboring:", Markup.keyboard([["Ortga"]]).resize());
       return;
     }
 
     if (
-      ctx.session.image === 'image' &&
+      ctx.session.image === "image" &&
       ctx.message &&
-      'photo' in ctx.message
+      "photo" in ctx.message
     ) {
       const photo = ctx.message.photo[ctx.message.photo.length - 1];
       ctx.session.stadion.image = photo.file_id;
       ctx.session.image = null;
-      ctx.session.menigerid = 'menigerid';
+      ctx.session.menigerid = "menigerid";
       ctx.reply(
-        'Menijer chatId sini kriting:',
-        Markup.keyboard([['Ortga']]).resize(),
+        "Menijer chatId sini kriting:",
+        Markup.keyboard([["Ortga"]]).resize()
       );
       return;
     }
 
     if (
-      ctx.session.menigerid === 'menigerid' &&
+      ctx.session.menigerid === "menigerid" &&
       ctx.message &&
-      'text' in ctx.message
+      "text" in ctx.message
     ) {
       ctx.session.stadion.menigerid = ctx.message.text;
       ctx.session.menigerid = null;
@@ -1002,7 +1039,7 @@ Admin: @BahodirNabijanov
       ctx.session.updateTargetId = id;
       ctx.session.waitingForUpdateId = false;
       ctx.session.waitingForNewPrice = true;
-      await ctx.reply('Iltimos, yangi narxni kiriting:');
+      await ctx.reply("Iltimos, yangi narxni kiriting:");
     } catch (error) {
       ctx.reply("❌ Xatolik yuz berdi, iltimos keyinroq urinib ko'ring");
     }
@@ -1018,7 +1055,7 @@ Admin: @BahodirNabijanov
         where: { id: ctx.session.updateTargetId },
         data: { price: newPrice },
       });
-      await ctx.reply('✅ Stadion narxi yangilandi.');
+      await ctx.reply("✅ Stadion narxi yangilandi.");
       ctx.session.waitingForNewPrice = false;
       ctx.session.updateTargetId = null;
     } catch (error) {
@@ -1032,33 +1069,33 @@ Admin: @BahodirNabijanov
     const number = parseInt(text);
 
     switch (ctx.session.state) {
-      case 'waitingForDeleteId':
+      case "waitingForDeleteId":
         const stadiumToDelete = await this.prisma.stadion.findUnique({
           where: { id: number },
         });
-        if (!stadiumToDelete) return ctx.reply('❌ Stadion topilmadi.');
+        if (!stadiumToDelete) return ctx.reply("❌ Stadion topilmadi.");
         await this.prisma.stadion.delete({ where: { id: number } });
         await ctx.reply("✅ O'chirildi.");
         ctx.session.state = null;
         break;
 
-      case 'waitingForUpdateId':
+      case "waitingForUpdateId":
         const stadiumToUpdate = await this.prisma.stadion.findUnique({
           where: { id: number },
         });
-        if (!stadiumToUpdate) return ctx.reply('❌ Stadion topilmadi.');
+        if (!stadiumToUpdate) return ctx.reply("❌ Stadion topilmadi.");
         ctx.session.updateTargetId = number;
-        ctx.session.state = 'waitingForNewPrice';
-        await ctx.reply('Yangi narxni kiriting:');
+        ctx.session.state = "waitingForNewPrice";
+        await ctx.reply("Yangi narxni kiriting:");
         break;
 
-      case 'waitingForNewPrice':
+      case "waitingForNewPrice":
         if (!ctx.session.updateTargetId) return;
         await this.prisma.stadion.update({
           where: { id: ctx.session.updateTargetId },
           data: { price: number },
         });
-        await ctx.reply('✅ Narx yangilandi.');
+        await ctx.reply("✅ Narx yangilandi.");
         ctx.session.state = null;
         ctx.session.updateTargetId = null;
         break;
@@ -1066,11 +1103,11 @@ Admin: @BahodirNabijanov
   }
 }
 
-@Wizard('add-stadium-wizard')
+@Wizard("add-stadium-wizard")
 export class AddStadiumWizard {
   constructor(
     private prisma: PrismaService,
-    private botService: BotService,
+    private botService: BotService
   ) {}
   @WizardStep(0)
   async step0(@Ctx() ctx: MyScenes) {
@@ -1084,7 +1121,7 @@ export class AddStadiumWizard {
 
   @WizardStep(1)
   async step1(@Ctx() ctx: MyScenes) {
-    if (!ctx.message || !('text' in ctx.message)) {
+    if (!ctx.message || !("text" in ctx.message)) {
       await ctx.reply("Iltimos, stadion nomini matn ko'rinishida yuboring.");
       return;
     }
@@ -1092,14 +1129,14 @@ export class AddStadiumWizard {
     const state = ctx.wizard.state as StadiumDataState;
     state.stadiumData.name = ctx.message.text;
 
-    await ctx.reply('Iltimos, stadion tavsifini yuboring:');
+    await ctx.reply("Iltimos, stadion tavsifini yuboring:");
     ctx.wizard.next();
     return;
   }
 
   @WizardStep(2)
   async step2(@Ctx() ctx: MyScenes) {
-    if (!ctx.message || !('text' in ctx.message)) {
+    if (!ctx.message || !("text" in ctx.message)) {
       await ctx.reply("Iltimos, stadion tavsifini matn ko'rinishida yuboring.");
       return;
     }
@@ -1107,21 +1144,21 @@ export class AddStadiumWizard {
     const state = ctx.wizard.state as StadiumDataState;
     state.stadiumData.description = ctx.message.text;
 
-    await ctx.reply('Iltimos, stadion joylashuvini yuboring:', {});
+    await ctx.reply("Iltimos, stadion joylashuvini yuboring:", {});
     ctx.wizard.next();
     return;
   }
 
   @WizardStep(3)
   async step3(@Ctx() ctx: MyScenes) {
-    if (!ctx.message || !('location' in ctx.message)) {
+    if (!ctx.message || !("location" in ctx.message)) {
       await ctx.reply(
-        "Iltimos, stadion joylashuvini '📍 Location' ko'rinishida yuboring.",
+        "Iltimos, stadion joylashuvini '📍 Location' ko'rinishida yuboring."
       );
       return;
     }
 
-    const loc = ctx.message['location'];
+    const loc = ctx.message["location"];
     const state = ctx.wizard.state as StadiumDataState;
     state.stadiumData.latitude = loc.latitude;
     state.stadiumData.longitude = loc.longitude;
@@ -1133,67 +1170,67 @@ export class AddStadiumWizard {
 
   @WizardStep(4)
   async step4(@Ctx() ctx: MyScenes) {
-    if (!ctx.message || !('text' in ctx.message)) {
+    if (!ctx.message || !("text" in ctx.message)) {
       await ctx.reply("Iltimos, narxni raqam ko'rinishida kiriting:");
       return;
     }
 
     const state = ctx.wizard.state as StadiumDataState;
-    const price = parseInt(ctx.message['text'], 10);
+    const price = parseInt(ctx.message["text"], 10);
     if (isNaN(price)) {
       await ctx.reply("Narxni faqat raqam ko'rinishida kriting:");
       return;
     }
     state.stadiumData.price = price;
 
-    await ctx.reply('Telefon raqamini kiriting:');
+    await ctx.reply("Telefon raqamini kiriting:");
     ctx.wizard.next();
     return;
   }
 
   @WizardStep(5)
   async step5(@Ctx() ctx: MyScenes) {
-    if (!ctx.message || !('text' in ctx.message)) {
-      await ctx.reply('Iltimos, telefon raqamini kiriting:');
+    if (!ctx.message || !("text" in ctx.message)) {
+      await ctx.reply("Iltimos, telefon raqamini kiriting:");
       return;
     }
 
     const state = ctx.wizard.state as StadiumDataState;
-    state.stadiumData.phone = ctx.message['text'];
+    state.stadiumData.phone = ctx.message["text"];
 
-    await ctx.reply('Hudud nomini kiriting:');
+    await ctx.reply("Hudud nomini kiriting:");
     ctx.wizard.next();
     return;
   }
 
   @WizardStep(6)
   async step6(@Ctx() ctx: MyScenes) {
-    if (!ctx.message || !('text' in ctx.message)) {
-      await ctx.reply('Iltimos, hudud nomini kiriting:');
+    if (!ctx.message || !("text" in ctx.message)) {
+      await ctx.reply("Iltimos, hudud nomini kiriting:");
       return;
     }
 
     const state = ctx.wizard.state as StadiumDataState;
-    state.stadiumData.region = ctx.message['text'];
+    state.stadiumData.region = ctx.message["text"];
 
-    await ctx.reply('Menedjerning Telegram chat ID raqamini kiriting:');
+    await ctx.reply("Menedjerning Telegram chat ID raqamini kiriting:");
     ctx.wizard.next();
     return;
   }
 
   @WizardStep(7)
   async step7(@Ctx() ctx: MyScenes) {
-    if (!ctx.message || !('text' in ctx.message)) {
+    if (!ctx.message || !("text" in ctx.message)) {
       await ctx.reply(
-        "Iltimos, menedjer chat ID sini raqam ko'rinishida kiriting:",
+        "Iltimos, menedjer chat ID sini raqam ko'rinishida kiriting:"
       );
       return;
     }
 
     const state = ctx.wizard.state as StadiumDataState;
-    const chatId = parseInt(ctx.message['text'], 10);
+    const chatId = parseInt(ctx.message["text"], 10);
     if (isNaN(chatId)) {
-      await ctx.reply('Faqat raqam kiriting:');
+      await ctx.reply("Faqat raqam kiriting:");
       return;
     }
 
@@ -1206,17 +1243,17 @@ export class AddStadiumWizard {
 
   @WizardStep(8)
   async step8(@Ctx() ctx: MyScenes) {
-    if (!ctx.message || !('photo' in ctx.message)) {
+    if (!ctx.message || !("photo" in ctx.message)) {
       await ctx.reply("Iltimos, stadion rasmini rasm ko'rinishida yuboring.");
       return;
     }
     const state = ctx.wizard.state as StadiumDataState;
-    const photo = ctx.message['photo'];
+    const photo = ctx.message["photo"];
     const largestPhoto = photo[photo.length - 1];
     state.stadiumData.image = largestPhoto.file_id;
 
     await ctx.reply(
-      "✅ Stadion ma'lumotlari to'liq yig'ildi. Bazaga saqlanmoqda...",
+      "✅ Stadion ma'lumotlari to'liq yig'ildi. Bazaga saqlanmoqda..."
     );
     ctx.scene.leave();
     return this.botService.Creted(ctx);
